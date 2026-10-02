@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatApp - Interactive Frontend Showcase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-pulse-ring {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased h-screen w-screen overflow-hidden flex flex-col select-none">
+
+  <!-- Top App Navigation Bar -->
+  <header class="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20 font-bold">
+        💬
+      </div>
+      <div>
+        <h1 class="font-bold text-sm text-white tracking-tight flex items-center gap-2">
+          ChatApp
+          <span class="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">Interactive Frontend</span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- Right utility controls -->
+    <div class="flex items-center gap-3">
+      <button onclick="toggleCallModal('Sarah Connor', 'video')" class="flex items-center gap-1.5 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl transition-all">
+        📹 Test Video Call
+      </button>
+      <div class="flex items-center gap-2 pl-3 border-l border-slate-800">
+        <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs text-white shadow-sm">
+          AR
+        </div>
+        <div class="hidden sm:block text-left text-xs">
+          <div class="font-semibold text-white">Alex Rivera</div>
+          <div class="text-[10px] text-emerald-400">● Online</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Chat Workspace -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- Sidebar: Chat List -->
+    <aside class="w-80 lg:w-96 bg-slate-900 border-r border-slate-800 flex flex-col flex-shrink-0">
+      
+      <!-- Search & New Chat -->
+      <div class="p-3 border-b border-slate-800/80">
+        <div class="flex items-center gap-2 mb-2.5">
+          <div class="relative flex-1">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">🔍</span>
+            <input
+              type="text"
+              id="search-input"
+              oninput="filterChats()"
+              placeholder="Search conversations..."
+              class="w-full bg-slate-800 border border-slate-700/80 rounded-xl py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <button onclick="showQuickModal('New Group', 'Create a group with teammates')" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs" title="New Group">
+            👥
+          </button>
+          <button onclick="showQuickModal('New Chat', 'Start a direct message')" class="p-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl text-xs font-bold" title="New Chat">
+            ➕
+          </button>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex gap-1.5 text-xs font-semibold text-slate-400">
+          <button onclick="setTab('all')" id="tab-all" class="px-3 py-1 rounded-lg bg-slate-800 text-emerald-400 font-bold transition-all">All</button>
+          <button onclick="setTab('direct')" id="tab-direct" class="px-3 py-1 rounded-lg hover:bg-slate-800/50 hover:text-slate-200 transition-all">Direct</button>
+          <button onclick="setTab('groups')" id="tab-groups" class="px-3 py-1 rounded-lg hover:bg-slate-800/50 hover:text-slate-200 transition-all">Groups</button>
+        </div>
+      </div>
+
+      <!-- Chat Items List -->
+      <div id="chats-list" class="flex-1 overflow-y-auto space-y-1 p-2"></div>
+    </aside>
+
+    <!-- Main Active Conversation Area -->
+    <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+
+      <!-- Chat Header -->
+      <div class="h-16 px-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between z-10">
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <div id="active-avatar" class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
+              SC
+            </div>
+            <span id="active-status-dot" class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+          </div>
+          <div>
+            <h2 id="active-chat-name" class="text-sm font-bold text-white">Sarah Connor</h2>
+            <p id="active-subtitle" class="text-[11px] text-emerald-400">Online • Active now</p>
+          </div>
+        </div>
+
+        <!-- Call & Action Buttons -->
+        <div class="flex items-center gap-1.5 text-slate-300">
+          <button onclick="toggleCallModal(activeChat.name, 'audio')" class="p-2 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition-all" title="Voice Call">
+            📞
+          </button>
+          <button onclick="toggleCallModal(activeChat.name, 'video')" class="p-2 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition-all" title="Video Call">
+            📹
+          </button>
+          <button onclick="clearCurrentChat()" class="p-2 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-all" title="Clear Messages">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages Stream -->
+      <div id="messages-container" class="flex-1 overflow-y-auto px-4 py-4 space-y-3"></div>
+
+      <!-- Typing Indicator -->
+      <div id="typing-indicator" class="hidden px-4 py-1.5 text-xs text-emerald-400 animate-pulse flex items-center gap-2">
+        <span class="w-2 h-2 bg-emerald-400 rounded-full animate-bounce"></span>
+        <span id="typing-text">Sarah is typing...</span>
+      </div>
+
+      <!-- Message Input Bar -->
+      <div class="p-3 bg-slate-900 border-t border-slate-800 relative">
+        
+        <!-- Reply Bar -->
+        <div id="reply-bar" class="hidden mb-2 p-2 bg-slate-800 border-l-4 border-emerald-500 rounded-r-xl text-xs flex items-center justify-between">
+          <div class="truncate">
+            <span class="text-emerald-400 font-bold block" id="reply-sender">Replying to Sarah</span>
+            <span class="text-slate-400 truncate" id="reply-snippet">Original text here...</span>
+          </div>
+          <button onclick="cancelReply()" class="text-slate-400 hover:text-white p-1">✕</button>
+        </div>
+
+        <!-- Input Form -->
+        <form onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
+          <!-- Attachments menu button -->
+          <div class="relative">
+            <button type="button" onclick="toggleAttachMenu()" class="p-2.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition-all" title="Attach file">
+              📎
+            </button>
+            <div id="attach-menu" class="hidden absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-700 rounded-2xl p-2 shadow-2xl flex flex-col gap-1 w-36 text-xs z-30">
+              <button type="button" onclick="sendAttachment('image')" class="flex items-center gap-2 px-3 py-2 text-slate-200 hover:bg-slate-700 rounded-xl text-left">
+                🖼️ Image
+              </button>
+              <button type="button" onclick="sendAttachment('audio')" class="flex items-center gap-2 px-3 py-2 text-slate-200 hover:bg-slate-700 rounded-xl text-left">
+                🎵 Audio
+              </button>
+              <button type="button" onclick="sendAttachment('document')" class="flex items-center gap-2 px-3 py-2 text-slate-200 hover:bg-slate-700 rounded-xl text-left">
+                📄 Document
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Emoji Palette -->
+          <div class="relative">
+            <button type="button" onclick="toggleEmojiPalette()" class="p-2.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition-all" title="Insert emoji">
+              😊
+            </button>
+            <div id="emoji-palette" class="hidden absolute bottom-full left-0 mb-2 bg-slate-900 border border-slate-700 rounded-2xl p-2.5 shadow-2xl grid grid-cols-6 gap-2 w-64 z-30">
+              <button type="button" onclick="insertEmoji('😊')" class="text-lg hover:scale-125">😊</button>
+              <button type="button" onclick="insertEmoji('😂')" class="text-lg hover:scale-125">😂</button>
+              <button type="button" onclick="insertEmoji('❤️')" class="text-lg hover:scale-125">❤️</button>
+              <button type="button" onclick="insertEmoji('🔥')" class="text-lg hover:scale-125">🔥</button>
+              <button type="button" onclick="insertEmoji('👍')" class="text-lg hover:scale-125">👍</button>
+              <button type="button" onclick="insertEmoji('🎉')" class="text-lg hover:scale-125">🎉</button>
+              <button type="button" onclick="insertEmoji('🚀')" class="text-lg hover:scale-125">🚀</button>
+              <button type="button" onclick="insertEmoji('🙌')" class="text-lg hover:scale-125">🙌</button>
+              <button type="button" onclick="insertEmoji('💯')" class="text-lg hover:scale-125">💯</button>
+              <button type="button" onclick="insertEmoji('✨')" class="text-lg hover:scale-125">✨</button>
+              <button type="button" onclick="insertEmoji('🤔')" class="text-lg hover:scale-125">🤔</button>
+              <button type="button" onclick="insertEmoji('👋')" class="text-lg hover:scale-125">👋</button>
+            </div>
+          </div>
+
+          <!-- Message Text Input -->
+          <input
+            type="text"
+            id="message-input"
+            placeholder="Type a message... (Press Enter to send)"
+            autocomplete="off"
+            class="flex-1 bg-slate-800 border border-slate-700/80 rounded-2xl py-2.5 px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+          />
+
+          <!-- Send Button -->
+          <button
+            type="submit"
+            class="p-2.5 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center"
+          >
+            ➤
+          </button>
+        </form>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Simulated WebRTC Call Overlay Modal -->
+  <div id="call-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="relative w-full max-w-3xl h-[75vh] bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between">
+      
+      <!-- Call Top Header -->
+      <div class="absolute top-4 left-4 right-4 z-20 flex items-center justify-between p-3 bg-slate-900/70 backdrop-blur-md border border-slate-700/60 rounded-2xl">
+        <div class="flex items-center gap-3">
+          <div id="call-avatar" class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white text-xs">
+            SC
+          </div>
+          <div>
+            <h4 id="call-partner-name" class="text-sm font-bold text-white">Sarah Connor</h4>
+            <p id="call-duration" class="text-[11px] text-emerald-400">00:14</p>
+          </div>
+        </div>
+        <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full font-semibold border border-slate-700">
+          HD Encrypted Call
+        </span>
+      </div>
+
+      <!-- Video Canvas Area -->
+      <div class="flex-1 relative flex items-center justify-center bg-slate-950 overflow-hidden">
+        <div class="text-center">
+          <div class="w-24 h-24 rounded-full bg-emerald-600 mx-auto flex items-center justify-center text-3xl font-bold shadow-2xl mb-3 border-4 border-slate-800">
+            👤
+          </div>
+          <h3 class="text-lg font-bold text-white">Remote Peer Connected</h3>
+          <p class="text-xs text-slate-400 mt-1">WebRTC Audio/Video Stream Active</p>
+        </div>
+
+        <div class="absolute bottom-4 right-4 w-40 aspect-video bg-slate-800 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl flex items-center justify-center">
+          <span class="text-xs text-slate-400 font-semibold">Your Camera</span>
+        </div>
+      </div>
+
+      <!-- Call Action Controls -->
+      <div class="p-4 flex items-center justify-center gap-4 bg-slate-900/90 border-t border-slate-800 z-20">
+        <button onclick="toggleCallMute(this)" class="p-3.5 rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700 transition-all" title="Toggle Mute">
+          🎙️
+        </button>
+        <button onclick="closeCallModal()" class="p-4 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all shadow-lg shadow-rose-600/30 scale-110" title="End Call">
+          📞 End Call
+        </button>
+        <button onclick="toggleCallVideo(this)" class="p-3.5 rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700 transition-all" title="Toggle Video">
+          📹
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- General Info Modal -->
+  <div id="info-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+      <h3 id="info-modal-title" class="text-lg font-bold text-white mb-2">Modal Title</h3>
+      <p id="info-modal-desc" class="text-xs text-slate-400 mb-6">Modal description...</p>
+      <div class="flex justify-end">
+        <button onclick="closeInfoModal()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">
+          Got it
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CHATS = [
+      {
+        id: '1',
+        name: 'Sarah Connor',
+        avatar: 'SC',
+        color: 'bg-indigo-600',
+        isGroup: false,
+        online: true,
+        unread: 0,
+        lastMessage: 'Let\'s review the frontend design!',
+        time: '12:45 PM',
+        messages: [
+          { id: 'm1', sender: 'Sarah Connor', text: 'Hey Alex! Did you finish the chat application architecture?', isMine: false, time: '12:40 PM', reactions: ['👍'] },
+          { id: 'm2', sender: 'Alex Rivera', text: 'Yes! Backend has Express, Socket.IO, WebRTC calling, and OTP authentication.', isMine: true, time: '12:42 PM', reactions: ['🔥', '🚀'] },
+          { id: 'm3', sender: 'Sarah Connor', text: 'That sounds amazing! Can we also test media attachments and calls?', isMine: false, time: '12:43 PM' },
+          { id: 'm4', sender: 'Alex Rivera', text: 'Absolutely, you can try sending images, audio, documents, and even start a video call right from the top right!', isMine: true, time: '12:45 PM' }
+        ]
+      },
+      {
+        id: '2',
+        name: 'Product Design Squad',
+        avatar: '👥',
+        color: 'bg-emerald-700',
+        isGroup: true,
+        online: true,
+        unread: 3,
+        lastMessage: 'Elena: New component kit uploaded.',
+        time: '11:15 AM',
+        messages: [
+          { id: 'm21', sender: 'David', text: 'Hey everyone, please check the new wireframes.', isMine: false, time: '11:00 AM' },
+          { id: 'm22', sender: 'Elena', text: 'New component kit uploaded.', isMine: false, time: '11:15 AM' }
+        ]
+      },
+      {
+        id: '3',
+        name: 'Michael Chen',
+        avatar: 'MC',
+        color: 'bg-purple-600',
+        isGroup: false,
+        online: false,
+        unread: 0,
+        lastMessage: 'See you at the demo meeting tomorrow!',
+        time: 'Yesterday',
+        messages: [
+          { id: 'm31', sender: 'Michael Chen', text: 'See you at the demo meeting tomorrow!', isMine: false, time: 'Yesterday' }
+        ]
+      },
+      {
+        id: '4',
+        name: 'Developers Hub',
+        avatar: '💻',
+        color: 'bg-blue-600',
+        isGroup: true,
+        online: true,
+        unread: 0,
+        lastMessage: 'PR merged to main branch.',
+        time: '2 days ago',
+        messages: [
+          { id: 'm41', sender: 'Bot', text: 'PR merged to main branch.', isMine: false, time: '2 days ago' }
+        ]
+      }
+    ];
+
+    let activeChat = CHATS[0];
+    let currentTab = 'all';
+    let replyTarget = null;
+    let callTimerInterval = null;
+    let callSeconds = 0;
+
+    function init() {
+      renderChatList();
+      renderActiveChat();
+    }
+
+    function renderChatList() {
+      const container = document.getElementById('chats-list');
+      const searchVal = document.getElementById('search-input').value.toLowerCase();
+
+      const filtered = CHATS.filter(c => {
+        if (currentTab === 'direct' && c.isGroup) return false;
+        if (currentTab === 'groups' && !c.isGroup) return false;
+        if (searchVal && !c.name.toLowerCase().includes(searchVal)) return false;
+        return true;
+      });
+
+      container.innerHTML = filtered.map(chat => `
+        <div onclick="selectChat('${chat.id}')" class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${activeChat.id === chat.id ? 'bg-slate-800 border border-slate-700/80 shadow-md' : 'hover:bg-slate-800/50'}">
+          <div class="relative">
+            <div class="w-11 h-11 rounded-full ${chat.color} flex items-center justify-center font-bold text-white text-sm shadow-sm">
+              ${chat.avatar}
+            </div>
+            ${!chat.isGroup ? `<span class="absolute bottom-0 right-0 w-3 h-3 ${chat.online ? 'bg-emerald-500' : 'bg-slate-500'} border-2 border-slate-900 rounded-full"></span>` : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between mb-1">
+              <h4 class="text-sm font-semibold truncate ${activeChat.id === chat.id ? 'text-emerald-400' : 'text-slate-100'}">${chat.name}</h4>
+              <span class="text-[10px] text-slate-500 font-medium">${chat.time}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <p class="text-slate-400 truncate text-[11px]">${chat.lastMessage}</p>
+              ${chat.unread > 0 ? `<span class="bg-emerald-500 text-slate-950 font-bold text-[10px] min-w-5 h-5 px-1.5 rounded-full flex items-center justify-center shadow-md">${chat.unread}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectChat(id) {
+      activeChat = CHATS.find(c => c.id === id);
+      activeChat.unread = 0;
+      renderChatList();
+      renderActiveChat();
+    }
+
+    function renderActiveChat() {
+      document.getElementById('active-chat-name').innerText = activeChat.name;
+      document.getElementById('active-avatar').innerText = activeChat.avatar;
+      document.getElementById('active-avatar').className = `w-10 h-10 rounded-full ${activeChat.color} flex items-center justify-center font-bold text-white text-sm`;
+      
+      const statusDot = document.getElementById('active-status-dot');
+      if (activeChat.isGroup) {
+        statusDot.style.display = 'none';
+        document.getElementById('active-subtitle').innerText = 'Group • Multiple participants';
+      } else {
+        statusDot.style.display = 'block';
+        statusDot.className = `absolute bottom-0 right-0 w-3 h-3 ${activeChat.online ? 'bg-emerald-500' : 'bg-slate-500'} border-2 border-slate-900 rounded-full`;
+        document.getElementById('active-subtitle').innerText = activeChat.online ? 'Online • Active now' : 'Offline • Last seen recently';
+      }
+
+      renderMessages();
+    }
+
+    function renderMessages() {
+      const container = document.getElementById('messages-container');
+      container.innerHTML = activeChat.messages.map(m => `
+        <div class="flex flex-col ${m.isMine ? 'items-end' : 'items-start'} group relative">
+          ${!m.isMine && activeChat.isGroup ? `<span class="text-[10px] text-emerald-400 font-semibold mb-1 ml-2">${m.sender}</span>` : ''}
+          <div class="max-w-[85%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 shadow-md ${m.isMine ? 'bg-emerald-600 text-slate-950 font-medium' : 'bg-slate-800 text-slate-100 border border-slate-700/60'}">
+            
+            ${m.replyTo ? `
+              <div class="mb-1.5 p-1.5 bg-black/20 border-l-2 border-slate-400 rounded text-xs opacity-90">
+                <span class="font-bold text-[10px] block">${m.replyTo.sender}</span>
+                <span class="truncate block">${m.replyTo.text}</span>
+              </div>
+            ` : ''}
+
+            ${m.image ? `
+              <div class="mb-2 rounded-xl overflow-hidden max-h-48 border border-white/10">
+                <img src="${m.image}" class="object-cover w-full h-full" alt="Attachment" />
+              </div>
+            ` : ''}
+
+            ${m.audio ? `
+              <div class="flex items-center gap-2 my-1 text-xs">
+                <span>🎵 Voice note:</span>
+                <div class="flex-1 h-2 bg-black/20 rounded-full"></div>
+                <span class="text-[10px]">0:18</span>
+              </div>
+            ` : ''}
+
+            ${m.file ? `
+              <div class="flex items-center gap-2 p-2 bg-black/15 rounded-xl my-1 text-xs">
+                <span class="text-base">📄</span>
+                <span class="truncate font-semibold">${m.file}</span>
+                <span class="text-[10px] opacity-75">420 KB</span>
+              </div>
+            ` : ''}
+
+            <p class="text-sm leading-relaxed">${m.text}</p>
+            <div class="flex items-center justify-end gap-1 text-[10px] opacity-75 mt-1">
+              <span>${m.time}</span>
+              ${m.isMine ? '<span>✓✓</span>' : ''}
+            </div>
+          </div>
+
+          ${m.reactions && m.reactions.length ? `
+            <div class="flex gap-1 mt-[-6px] z-10 ${m.isMine ? 'mr-2' : 'ml-2'}">
+              <span class="bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5 text-xs shadow-sm">${m.reactions.join(' ')}</span>
+            </div>
+          ` : ''}
+
+          <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 ${m.isMine ? 'right-full mr-2' : 'left-full ml-2'} flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-xl px-1.5 py-1 text-xs shadow-xl">
+            <button onclick="addReaction('${m.id}', '❤️')" title="Heart">❤️</button>
+            <button onclick="addReaction('${m.id}', '👍')" title="Thumbs up">👍</button>
+            <button onclick="addReaction('${m.id}', '🔥')" title="Fire">🔥</button>
+            <button onclick="setReply('${m.id}')" title="Reply">↩️</button>
+          </div>
+        </div>
+      `).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleSendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const newMsg = {
+        id: 'msg_' + Date.now(),
+        sender: 'Alex Rivera',
+        text: text,
+        isMine: true,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        replyTo: replyTarget
+      };
+
+      activeChat.messages.push(newMsg);
+      activeChat.lastMessage = 'You: ' + text;
+      input.value = '';
+      cancelReply();
+      renderChatList();
+      renderMessages();
+
+      simulatePartnerResponse();
+    }
+
+    function simulatePartnerResponse() {
+      const indicator = document.getElementById('typing-indicator');
+      document.getElementById('typing-text').innerText = `${activeChat.name} is typing...`;
+      indicator.classList.remove('hidden');
+
+      setTimeout(() => {
+        indicator.classList.add('hidden');
+        const responses = [
+          "That looks super clean and responsive!",
+          "Great job with the real-time sockets and layout.",
+          "Let's test the audio/video call feature next.",
+          "Received! Everything is flowing smoothly.",
+          "Awesome work on this chat app!"
+        ];
+        const randomResp = responses[Math.floor(Math.random() * responses.length)];
+
+        activeChat.messages.push({
+          id: 'msg_' + Date.now(),
+          sender: activeChat.name,
+          text: randomResp,
+          isMine: false,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        activeChat.lastMessage = randomResp;
+        renderChatList();
+        renderMessages();
+      }, 1400);
+    }
+
+    function addReaction(msgId, emoji) {
+      const msg = activeChat.messages.find(m => m.id === msgId);
+      if (msg) {
+        msg.reactions = msg.reactions || [];
+        if (!msg.reactions.includes(emoji)) {
+          msg.reactions.push(emoji);
+        }
+        renderMessages();
+      }
+    }
+
+    function setReply(msgId) {
+      const msg = activeChat.messages.find(m => m.id === msgId);
+      if (msg) {
+        replyTarget = { sender: msg.sender, text: msg.text };
+        document.getElementById('reply-sender').innerText = `Replying to ${msg.sender}`;
+        document.getElementById('reply-snippet').innerText = msg.text;
+        document.getElementById('reply-bar').classList.remove('hidden');
+        document.getElementById('message-input').focus();
+      }
+    }
+
+    function cancelReply() {
+      replyTarget = null;
+      document.getElementById('reply-bar').classList.add('hidden');
+    }
+
+    function setTab(tab) {
+      currentTab = tab;
+      ['all', 'direct', 'groups'].forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (t === tab) {
+          btn.className = 'px-3 py-1 rounded-lg bg-slate-800 text-emerald-400 font-bold transition-all';
+        } else {
+          btn.className = 'px-3 py-1 rounded-lg hover:bg-slate-800/50 hover:text-slate-200 transition-all';
+        }
+      });
+      renderChatList();
+    }
+
+    function filterChats() {
+      renderChatList();
+    }
+
+    function toggleEmojiPalette() {
+      const palette = document.getElementById('emoji-palette');
+      palette.classList.toggle('hidden');
+      document.getElementById('attach-menu').classList.add('hidden');
+    }
+
+    function insertEmoji(emoji) {
+      const input = document.getElementById('message-input');
+      input.value += emoji;
+      input.focus();
+      document.getElementById('emoji-palette').classList.add('hidden');
+    }
+
+    function toggleAttachMenu() {
+      const menu = document.getElementById('attach-menu');
+      menu.classList.toggle('hidden');
+      document.getElementById('emoji-palette').classList.add('hidden');
+    }
+
+    function sendAttachment(type) {
+      document.getElementById('attach-menu').classList.add('hidden');
+      let msg = {
+        id: 'msg_' + Date.now(),
+        sender: 'Alex Rivera',
+        isMine: true,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      if (type === 'image') {
+        msg.text = 'Attached a screenshot preview';
+        msg.image = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80';
+      } else if (type === 'audio') {
+        msg.text = 'Audio voice note';
+        msg.audio = true;
+      } else {
+        msg.text = 'Project Documentation.pdf';
+        msg.file = 'Project Documentation.pdf';
+      }
+
+      activeChat.messages.push(msg);
+      activeChat.lastMessage = 'You: ' + msg.text;
+      renderChatList();
+      renderMessages();
+    }
+
+    function clearCurrentChat() {
+      if (confirm('Clear messages in this conversation?')) {
+        activeChat.messages = [];
+        renderMessages();
+      }
+    }
+
+    function toggleCallModal(partnerName, type) {
+      const modal = document.getElementById('call-modal');
+      document.getElementById('call-partner-name').innerText = partnerName;
+      document.getElementById('call-avatar').innerText = partnerName.slice(0, 2).toUpperCase();
+      modal.classList.remove('hidden');
+
+      callSeconds = 0;
+      clearInterval(callTimerInterval);
+      callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const m = Math.floor(callSeconds / 60);
+        const s = callSeconds % 60;
+        document.getElementById('call-duration').innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+      }, 1000);
+    }
+
+    function closeCallModal() {
+      clearInterval(callTimerInterval);
+      document.getElementById('call-modal').classList.add('hidden');
+    }
+
+    function toggleCallMute(btn) {
+      btn.classList.toggle('bg-rose-500');
+      btn.innerText = btn.classList.contains('bg-rose-500') ? '🔇' : '🎙️';
+    }
+
+    function toggleCallVideo(btn) {
+      btn.classList.toggle('bg-rose-500');
+      btn.innerText = btn.classList.contains('bg-rose-500') ? '🚫' : '📹';
+    }
+
+    function showQuickModal(title, desc) {
+      document.getElementById('info-modal-title').innerText = title;
+      document.getElementById('info-modal-desc').innerText = desc;
+      document.getElementById('info-modal').classList.remove('hidden');
+    }
+
+    function closeInfoModal() {
+      document.getElementById('info-modal').classList.add('hidden');
+    }
+
+    init();
+  </script>
+</body>
+</html>
